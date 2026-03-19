@@ -949,7 +949,8 @@ export const chatHandlers: GatewayRequestHandlers = {
       if (!isNaN(beforeTs)) {
         rawMessages = rawMessages.filter((msg: { timestamp?: number }) => {
           const ts = (msg as { timestamp?: number }).timestamp;
-          return ts && ts < beforeTs;
+          // Use <= to avoid gaps at page boundaries, and keep messages without timestamp
+          return !ts || ts <= beforeTs;
         });
       }
     }
@@ -990,9 +991,12 @@ export const chatHandlers: GatewayRequestHandlers = {
     const verboseLevel = entry?.verboseLevel ?? cfg.agents?.defaults?.verboseDefault;
 
     // Generate cursor and hasMore for pagination
-    const hasMore = rawMessages.length > sliced.length;
-    const oldestMessage = sliced.length > 0 ? (sliced[0] as { timestamp?: number }) : null;
-    const cursor = oldestMessage?.timestamp ? String(oldestMessage.timestamp) : null;
+    // Use bounded.messages (actual delivered payload) not sliced for accurate cursor
+    const deliveredMessages = bounded.messages as Array<{ timestamp?: number }>;
+    const oldestDelivered = deliveredMessages.length > 0 ? deliveredMessages[0] : null;
+    const cursor = oldestDelivered?.timestamp ? String(oldestDelivered.timestamp) : null;
+    // hasMore only if we have a usable cursor AND there are more messages
+    const hasMore = cursor !== null && rawMessages.length > bounded.messages.length;
 
     respond(true, {
       sessionKey,

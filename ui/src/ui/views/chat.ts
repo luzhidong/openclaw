@@ -897,13 +897,13 @@ export function renderChat(props: ChatProps) {
           : nothing
       }
       ${
-        props.historyHasMore && !props.loading
+        props.historyHasMore && !props.loading && !props.stream
           ? html`
               <div class="chat-load-more">
                 <button
                   class="chat-load-more__btn"
                   @click=${props.onLoadMoreHistory}
-                  ?disabled=${props.loading}
+                  ?disabled=${props.loading || props.sending || props.stream !== null}
                 >
                   Load earlier messages
                 </button>
